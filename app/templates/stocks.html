@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Performance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0c090d;
+            color: #ffffff;
+            padding: 24px;
+            margin: 0;
+            overflow: auto;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 30px;
+            color: #ff4c8d;
+            text-shadow: 0 0 8px rgba(255, 76, 141, 0.8);
+            text-align: center;
+        }
+        .subtitle{
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: #4caf50;
+            text-shadow: 0 0 8px rgba(76, 175, 80, 0.8);
+            text-align: center;
+        }
+
+        label {
+            margin-right: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        select {
+            padding: 10px;
+            border: 2px solid #4a148c;
+            border-radius: 6px;
+            background-color: #1a0535;
+            color: #ffffff;
+            font-size: 16px;
+            transition: border-color 0.3s ease, background-color 0.3s ease;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' d='M7 10l5 5 5-5z'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 20px;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #ff4c8d;
+            background-color: #2a084d;
+        }
+
+        .chart-container {
+            background-color: rgba(255, 255, 255, 0.06);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: 400px;
+            position: relative;
+            z-index: 1;
+            background-image: url('https://cdnb.artstation.com/p/assets/images/images/014/665/033/original/yargon-kerman-webp-net-gifmaker-39.gif?1544919451');
+            background-size: cover;
+            background-position: center;
+            overflow: hidden;
+            filter: brightness(70%);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 30px;
+            z-index: 1;
+            position: relative;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #6d28d9;
+            background-color: rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        thead {
+            background-color: rgba(107, 114, 128, 0.3);
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid #6d28d9;
+            color: #ffffff;
+        }
+
+        th {
+            font-weight: 600;
+            color: #ffffff;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        th:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            transition: background-color 0.3s ease;
+        }
+
+        tbody tr:nth-child(odd) {
+            background-color: rgba(255, 255, 255, 0.04);
+        }
+
+        .font-mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            h1 {
+                font-size: 28px;
+            }
+            label {
+                font-size: 16px;
+            }
+            select {
+                font-size: 14px;
+                padding: 8px;
+            }
+            th, td {
+                padding: 10px;
+            }
+            .chart-container {
+                height: 300px;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #111827;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #6b7280;
+            border-radius: 10px;
+            border: 3px solid #111827;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #9ca3af;
+        }
+
+        .stock-select-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            z-index: 1;
+            position: relative;
+        }
+        .stock-select-item {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+
+        .stock-select-item input {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #4a148c;
+            border-radius: 4px;
+            background-color: #1a0535;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            position: relative;
+        }
+
+        .stock-select-item input:checked {
+            background-color: #ff4c8d;
+            border-color: #ff4c8d;
+        }
+
+        .stock-select-item input:checked::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px;
+            height: 6px;
+            background-color: #ffffff;
+            border-radius: 50%;
+        }
+
+        .stock-select-item label {
+            font-size: 14px;
+            font-weight: 400;
+            color: #ffffff;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+
+        .deselect-button {
+            margin-left: 10px;
+            padding: 8px 16px;
+            background-color: #4a148c;
+            color: #ffffff;
+            border: 2px solid #6d28d9;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            z-index: 1;
+            position: relative;
+        }
+
+        .deselect-button:hover {
+            background-color: #6d28d9;
+            color: #ffffff;
+        }
+        .toggle-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .toggle-input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-label {
+            display: inline-block;
+            cursor: pointer;
+            text-indent: -9999px;
+            width: 100px;
+            height: 30px;
+            background: #808080;
+            border-radius: 100px;
+            position: relative;
+        }
+
+        .toggle-label:after {
+            position: absolute;
+            content: '';
+            top: 5px;
+            left: 5px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 90px;
+            transition: 0.3s;
+        }
+
+        .toggle-input:checked + .toggle-label {
+            background: #ff4c8d;
+        }
+
+        .toggle-input:checked + .toggle-label:after {
+            left: calc(100% - 5px);
+            transform: translateX(-100%);
+        }
+
+        .toggle-label:active:after {
+            width: 30px;
+        }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+        body {
+            background-color: #11081D;
+        }
+
+    </style>
+</head>
+<body class="bg-gray-900 text-white p-6">
+    <div class="container mx-auto">
+        <h1 class="text-3xl font-bold mb-4">Algalterian Galactic Exchange</h1>
+        <p class = "subtitle" style="font-family: 'Synthwave', sans-serif; font-weight: normal;">SynthStock Trader</p>
+
+        <div class="mb-4">
+            <label for="timeRange" class="mr-2 font-semibold">Select Time Range:</label>
+            <select id="timeRange" class="bg-gray-700 text-white p-2 rounded">
+                <option value="1D">1 Day</option>
+                <option value="1W">1 Week</option>
+                <option value="1M">1 Month</option>
+                <option value="6M">6 Months</option>
+                <option value="1Y">1 Year</option>
+                <option value="All">All Time</option>
+            </select>
+        </div>
+
+        <div class="mb-4 stock-select-container" id="stockSelectContainer">
+            <span class="mr-2 font-semibold">Select Stocks:</span>
+            <div id="stockCheckboxes">
+            </div>
+            <button class="deselect-button" id="deselectAll">Deselect All</button>
+        </div>
+        <div class="toggle-container">
+            <span class="mr-2 font-semibold">Display:</span>
+            <input type="checkbox" id="pricePercentToggle" class="toggle-input">
+            <label for="pricePercentToggle" class="toggle-label">
+                <span class="sr-only">Toggle Price/Percent</span>
+            </label>
+            <span id="pricePercentText" class="ml-2 text-white">Price</span>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="stockChart"></canvas>
+        </div>
+
+        <div class="table-container">
+            <table class="min-w-full table-auto border border-gray-700">
+                <thead class="bg-gray-800">
+                    <tr>
+                        <th class="px-4 py-2 text-left" data-column="Ticker">Ticker - Name</th>
+                        <th class="px-4 py-2 text-right" data-column="Price">Price</th>
+                        <th class="px-4 py-2 text-right" data-column="Volatility">Volatility</th>
+                        <th class="px-4 py-2 text-right" data-column="Change_All">All-Time</th>
+                        <th class="px-4 py-2 text-right" data-column="Change_1Y">1Y</th>
+                        <th class="px-4 py-2 text-right" data-column="Change_6M">6M</th>
+                        <th class="px-4 py-2 text-right" data-column="Change_1M">1M</th>
+                        <th class="px-4 py-2 text-right" data-column="Change_1W">1W</th>
+                        <th class="px-4 py-2 text-right" data-column="Change_1D">1D</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        const ctx = document.getElementById('stockChart');
+        let myChart;
+        let sortColumn = null;
+        let sortDirection = 'asc';
+        const defaultTimeRange = "1D";
+        let allStocks = [];
+        let selectedStocks = [];
+        let displayMode = 'price';  // 'price' or 'percent'
+
+        function createChart() {
+            if (myChart) {
+                myChart.destroy(); // Destroy existing chart before creating a new one
+            }
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false,
+                            position: 'top',
+                            labels: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                drawBorder: false
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 12,
+                                    callback: function(value) {
+                                        return displayMode === 'percent' ? value.toFixed(2) + '%' : value.toFixed(2);
+                                    }
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                drawBorder: false
+                            },
+                            title: { // Add title to y-axis
+                                display: true,
+                                text: 'Price', // Default title
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        }
+                    },
+                    elements: {
+                        line: {
+                            tension: 0.4,
+                            borderWidth: 3
+                        },
+                        point: {
+                            radius: 0,
+                            hitRadius: 30,
+                            hoverRadius: 6,
+                            backgroundColor: '#ff4c8d',
+                            borderColor: '#ffffff',
+                            borderWidth: 2
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadChartData(range = defaultTimeRange, selectedTickers = [], mode = 'price') {
+            const response = await fetch(`/chart-data?t=${range}&mode=${mode}`);
+            const data = await response.json();
+
+            if (!myChart) {
+                createChart();
+            }
+
+            const synthwaveColors = [
+                '#ff4c8d',
+                '#42a5f5',
+                '#ffdb58',
+                '#4caf50',
+                '#d34dff'
+            ];
+
+            // Filter datasets based on selected tickers
+            const datasets = data.datasets.filter(dataset => selectedTickers.includes(dataset.label));
+
+            // Ensure datasets have the correct colors and labels
+            const coloredDatasets = datasets.map((dataset, index) => {
+                const newDataset = {
+                    ...dataset,
+                    borderColor: synthwaveColors[(index * 2) % synthwaveColors.length],
+                    backgroundColor: 'transparent',
+                    label: dataset.label,
+                };
+
+                // Convert data to percentage if mode is percent
+                if (mode === 'percent' && newDataset.data.length > 0) {
+                    const initialValue = newDataset.data[0];
+                    if (initialValue !== 0) { // Avoid division by zero
+                        newDataset.data = newDataset.data.map(value => ((value - initialValue) / initialValue) * 100);
+                    } else {
+                        newDataset.data = newDataset.data.map(() => 0); // If initial is 0, percentage change is 0
+                    }
+                }
+                return newDataset;
+            });
+
+            myChart.data.labels = data.labels;
+            myChart.data.datasets = coloredDatasets;
+
+            // Update y-axis title based on display mode
+            myChart.options.scales.y.title.text = mode === 'price' ? 'Price' : 'Percentage Change';
+            myChart.update();
+        }
+
+        async function loadStockData(sortCol = null, sortDir = 'asc') {
+            const response = await fetch('/stock-data');
+            const stocks = await response.json();
+            const tableBody = document.querySelector('tbody');
+            tableBody.innerHTML = '';
+
+            if (!stocks || stocks.length === 0) {
+                console.error("No stock data received!");
+                tableBody.innerHTML = '<tr><td colspan="9" class="text-center py-4">No stock data available.</td></tr>';
+                return;
+            }
+
+            allStocks = stocks; // Update allStocks array with fresh data
+
+            // Re-render checkboxes every time to ensure they reflect current selections
+            const stockCheckboxesContainer = document.getElementById('stockCheckboxes');
+            stockCheckboxesContainer.innerHTML = '';
+            const numColumns = 3;
+            let colCounter = 0;
+            let rowDiv;
+
+            stocks.forEach(stock => {
+                if (colCounter % numColumns === 0) {
+                    rowDiv = document.createElement('div');
+                    rowDiv.className = 'stock-select-row';
+                    rowDiv.style.display = 'flex';
+                    stockCheckboxesContainer.appendChild(rowDiv);
+                }
+
+                const stockItem = document.createElement('div');
+                stockItem.className = 'stock-select-item';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `stock-${stock.Ticker}`;
+                checkbox.value = stock.Ticker;
+                checkbox.checked = selectedStocks.includes(stock.Ticker); // Preserve selection
+                checkbox.addEventListener('change', () => {
+                    if (checkbox.checked) {
+                        if (!selectedStocks.includes(stock.Ticker)) { // Avoid duplicates
+                            selectedStocks.push(stock.Ticker);
+                        }
+                    } else {
+                        selectedStocks = selectedStocks.filter(ticker => ticker !== stock.Ticker);
+                    }
+                    loadChartData(document.getElementById('timeRange').value, selectedStocks, displayMode);
+                });
+
+                const label = document.createElement('label');
+                label.htmlFor = `stock-${stock.Ticker}`;
+                label.textContent = `${stock.Ticker} - ${stock.Name}`;
+
+                stockItem.appendChild(checkbox);
+                stockItem.appendChild(label);
+                rowDiv.appendChild(stockItem);
+                colCounter++;
+            });
+
+            // Sort stocks based on current sort criteria
+            if (sortCol) {
+                stocks.sort((a, b) => {
+                    let valA, valB;
+                    if (['Price', 'Volatility', 'Change_All', 'Change_1Y', 'Change_6M', 'Change_1M', 'Change_1W', 'Change_1D'].includes(sortCol)) {
+                        valA = parseFloat(a[sortCol]);
+                        valB = parseFloat(b[sortCol]);
+                        return sortDir === 'asc' ? valA - valB : valB - valA;
+                    } else { // For Ticker - Name
+                        valA = a.Ticker.toLowerCase();
+                        valB = b.Ticker.toLowerCase();
+                        return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                    }
+                });
+            }
+
+            // Populate the table
+            stocks.forEach(stock => {
+                const row = document.createElement('tr');
+                row.className = "border-t border-gray-700 hover:bg-gray-800";
+                row.innerHTML = `
+                    <td class="px-4 py-2 font-mono text-left">${stock.Ticker} - ${stock.Name}</td>
+                    <td class="px-4 py-2 text-right">${stock.Price.toFixed(2)}</td>
+                    <td class="px-4 py-2 text-right">${stock.Volatility.toFixed(3)}</td>
+                    <td class="px-4 py-2 text-right">${stock.Change_All.toFixed(2)}%</td>
+                    <td class="px-4 py-2 text-right">${stock.Change_1Y.toFixed(2)}%</td>
+                    <td class="px-4 py-2 text-right">${stock.Change_6M}.toFixed(2)}%</td>
+                    <td class="px-4 py-2 text-right">${stock.Change_1M}.toFixed(2)}%</td>
+                    <td class="px-4 py-2 text-right">${stock.Change_1W}.toFixed(2)}%</td>
+                    <td class="px-4 py-2 text-right">${stock.Change_1D}.toFixed(2)}%</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Initial setup and event listeners
+        document.getElementById('timeRange').addEventListener('change', function () {
+            loadChartData(this.value, selectedStocks, displayMode);
+        });
+
+        document.getElementById('deselectAll').addEventListener('click', () => {
+            selectedStocks = [];
+            const checkboxes = document.querySelectorAll('#stockCheckboxes input');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            loadChartData(document.getElementById('timeRange').value, selectedStocks, displayMode);
+        });
+
+        document.querySelectorAll('th').forEach(header => {
+            header.addEventListener('click', function () {
+                const column = this.dataset.column;
+                if (column) {
+                    if (sortColumn === column) {
+                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortColumn = column;
+                        sortDirection = 'asc';
+                    }
+                    loadStockData(sortColumn, sortDirection);
+                }
+            });
+        });
+
+        document.getElementById('pricePercentToggle').addEventListener('change', function() {
+            displayMode = this.checked ? 'percent' : 'price';
+            document.getElementById('pricePercentText').textContent = displayMode === 'price' ? 'Price' : 'Percent';
+            loadChartData(document.getElementById('timeRange').value, selectedStocks, displayMode);
+        });
+
+        // Initial load of both chart and table data
+        loadStockData(sortColumn, sortDirection).then(() => {
+            // Once stock data is loaded and checkboxes are rendered,
+            // ensure any pre-selected stocks (if applicable) are reflected in the chart
+            // For now, let's just load the chart with default settings initially.
+            // If you have a way to persist selectedStocks, retrieve it here.
+            loadChartData(defaultTimeRange, selectedStocks, displayMode);
+        });
+
+
+        // Auto-refresh every 60 seconds
+        setInterval(() => {
+            console.log("Auto-refreshing data...");
+            loadStockData(sortColumn, sortDirection); // Refresh table data
+            loadChartData(document.getElementById('timeRange').value, selectedStocks, displayMode); // Refresh chart data
+        }, 60 * 1000); // 60 seconds * 1000 milliseconds/second
+    </script>
+</body>
+</html>
