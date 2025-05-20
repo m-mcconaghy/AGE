@@ -15,8 +15,8 @@ from app.db import (
 from app.sim import update_prices
 
 # --- Database Bootstrap ---
-# initialize_market_status_defaults()
-# initialize_stocks()
+initialize_market_status_defaults()
+initialize_stocks()
 
 # --- Background Tick Engine ---
 @asynccontextmanager
